@@ -26,19 +26,12 @@ The code uses lots of Serial.print() statements for debugging purposes. These ca
 
 Board to use with Arduino IDE: ESP32 Dev Module
   
-NOTE: Wifi credentials and InfluxDB settings (including credentials) are stored in header files in my Arduino libraries folder.
+NOTE: Wifi credentials and InfluxDB settings (including credentials) are stored in header files in my Arduino libraries folder. These files are:
 
-In my setup, I have two wifi APs, which is why you see the connection routine alternate between the two. The WifiCfgHome.h header file looks something like this:
+WifiCfgHome.h
 
-#define WIFI_SSID_MAIN "ssid1"
-#define WIFI_SSID_ALT "ssid2"
-#define WIFI_PASSWORD "password"
-  
-You could always use the same setup and just make both SSIDs the same, if you have only one AP (poor you!).
+InfluxDbConfig.h
 
-The InfluxDbConfig.h looks a bit like this:
+Samples for both are included in this repo. Edit them and put them in the libraries folder.
 
-#define INFLUXDB_URL "http://10.0.30.50:8086"
-#define INFLUXDB_DB_NAME "iot"
-#define INFLUXDB_USER "iot"
-#define INFLUXDB_PASSWORD "password"
+In my setup, I have two wifi APs, which is why you see the connection routine alternate between the two in the code and the config header file has two entries. You could always use the same setup and just make both SSIDs the same, if you have only one AP (poor you!).
