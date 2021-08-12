@@ -2,6 +2,8 @@
 
 ESP32-based IoT room thermometer with InfluxDB client & OLED display.
 
+A blog post on this is in progress.
+
 Version: 1.0  ::  09/08/2021  
 
 Machina Speculatrix :: https://mansfield-devine.com/speculatrix/
