@@ -25,6 +25,8 @@ Display I2C address is 0x3C (normally 0x3D for a 128x64 OLED).
 The code uses lots of Serial.print() statements for debugging purposes. These can be - and probably should be - removed or commented out.
 
 Board to use with Arduino IDE: ESP32 Dev Module
+
+This code uses Adafruit GFX fonts. I've created my own fonts, which are the ones referenced in the code. So it's unlikely you'll be able to run this straight off the bat. Replace the fonts with ones available in your dev environment. Or use the display's built-in fonts.
   
 NOTE: Wifi credentials and InfluxDB settings (including credentials) are stored in header files in my Arduino libraries folder. These files are:
 
