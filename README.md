@@ -19,7 +19,9 @@ Uses a GY-21 (SHT21/HTU21) I2C temperature & humidity sensor module.
 Because of the dev board's unusual I2C pinout – used for the OLED display - we need a TwoWire instance with custom pin assignments to pass to the Adafruit_SSD1306 instance.
 
 For the same reason, the Environment library in the Arduino IDE doesn't work for use wth the GY-21 sensor board.
-Neither did the SHT21 library. So I modified the latter to have a constructor that allows me to pass the same TwoWire instance that I created for the OLED display. This version is called SHT21_TTGO. It will get its own GitHub repo soon.
+Neither did the SHT21 library. So I modified the latter to have a constructor that allows me to pass the same TwoWire instance that I created for the OLED display. This version is called SHT21_TTGO.
+
+The repo for the SHT21_TTGO library: https://github.com/mspeculatrix/SHT21_TTGO
 
 Display reset pin is 16.
 Display I2C address is 0x3C (normally 0x3D for a 128x64 OLED).
