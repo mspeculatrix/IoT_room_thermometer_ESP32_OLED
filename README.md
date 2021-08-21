@@ -41,3 +41,5 @@ InfluxDbConfig.h
 Samples for both are included in this repo. Edit them and put them in their own folders within the main Arduino libraries folder.
 
 In my setup, I have two wifi APs, which is why you see the connection routine alternate between the two in the code and the config header file has two entries. You could always use the same setup and just make both SSIDs the same, if you have only one AP (poor you!).
+
+There's another version of the code ('nobatt') for use without a battery. I've uploaded this as a text file because having more than one '.ino' in a folder causes problems in the Arduino IDE. Rename the file extension from '.txt' to '.ino' to compile and upload.
