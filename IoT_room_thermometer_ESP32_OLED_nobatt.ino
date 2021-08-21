@@ -1,9 +1,9 @@
 /*  IoT_room_thermometer_ESP32_OLED
 
-    ESP32-based IoT room thermometer with InfluxDB client & OLED display.
+	Version of the main program for a device that will be powered by 5V from
+	a USB power supply. All battery-related stuff has been removed.
 
-    Version: 1.1 :: 13/08/2021
-    - Added battery level measurement & warning
+    ESP32-based IoT room thermometer with InfluxDB client & OLED display.
 
     Machina Speculatrix :: https://mansfield-devine.com/speculatrix/
 
@@ -20,8 +20,8 @@
     a TwoWire instance with custom pin assignments to pass to the Adafruit_SSD1306
     instance.
 
-    For the same reason, the Environment library in the Arduino IDE doesn't work for use
-    wth the GY-21 sensor board.
+    For the same reason, the Environment library in the Arduino IDE doesn't work 
+	for use wth the GY-21 sensor board.
     Neither did the SHT21 library. So I modified the latter to have a constructor
     that allows me to pass the same TwoWire instance that I created for the OLED display.
     This version is called SHT21_TTGO.
@@ -72,19 +72,9 @@
 #define DISPLAY_ADDR        0x3C    // I2C address for OLED display
 #define SENSOR_ADDR         0x40    // I2C address for SHT21 sensor board
 #define LINE_HEIGHT_1       8       // Height of font size 1 in pixels
-#define BATT_INTERVAL       6       // No. times through loop between battery readings
 #define HUM_Y               30
-#define VBAT_PIN            35
-#define BATTV_MAX           4.1     // maximum voltage of battery
-#define BATTV_MIN           3.2     // what we regard as an empty battery
-#define BATTV_LOW           3.4     // voltage considered to be low battery
-#define BATT_ALERT_THRESHOLD 5      // how many times we read low battery before sending alert
-#define BATT_X              0       // X coordinate for battery message/indicator
-#define BATT_Y              56      // Y coordinate for battery message/indicator
-#define BATT_W              50      // width of battery indictor
 #define ALIGN_LEFT          0
 #define ALIGN_RIGHT         1
-#define ALERT_URGENCY       3       // on a scale of 0-9, with 9 being the highest
 // ---------------------------------------------------------------------------------------
 
 #include <WiFiMulti.h>
@@ -114,25 +104,22 @@
 #include <InfluxDbConfig.h>
 
 // Function prototypes
-void printBatteryLevel();
 void printIP();
 void printLine(String text, uint8_t line, uint8_t align, uint8_t adjusty);
 void printTemperature(const float temp);
 void printHumidity(const float hum);
 bool checkSHT21();
 bool wifiConnect();
-void sendAlert();
+
+// ---------------------------------------------------------------------------------------
+// --- GLOBALS                                                                         ---
+// ---------------------------------------------------------------------------------------
 
 bool wifiConnected;
 bool influxConnected;
 
 float temperature;
 float humidity;
-
-float battv;         // battery level, in Volts
-uint8_t battpc;      // battery level, in percentage
-bool batt_warning_sent;
-uint8_t low_batt_counter;  // no. times we've seen a low battery
 
 // ---------------------------------------------------------------------------------------
 // --- MAIN OBJECTS                                                                    ---
@@ -143,7 +130,6 @@ WiFiMulti wifiMulti;
 // InfluxDB
 InfluxDBClient dbclient(INFLUXDB_URL, INFLUXDB_DB_NAME);
 Point sensor(INFLUX_MEASUREMENT);
-Point alert(INFLUX_ALERT);
 
 // I2C
 TwoWire twi = TwoWire(1); // create our own TwoWire instance
@@ -163,42 +149,6 @@ IPAddress ip;
 // ---------------------------------------------------------------------------------------
 // --- DISPLAY FUNCTIONS                                                               ---
 // ---------------------------------------------------------------------------------------
-void printBatteryLevel() {
-  display.setFont();          // stop using GFX fonts
-  display.setTextSize(1);
-  display.setCursor(BATT_X, BATT_Y);
-  display.fillRect(BATT_X, BATT_Y, SCREEN_WIDTH, LINE_HEIGHT_1, SSD1306_BLACK);  // clear
-  if(battv > BATTV_LOW) {
-    // Draw outline box
-    display.drawRect(BATT_X, BATT_Y, BATT_W + 2, LINE_HEIGHT_1, SSD1306_WHITE);
-    // Draw the power level bar
-    display.fillRect(BATT_X + 1, BATT_Y + 1, (battpc * BATT_W)/100, 6, SSD1306_WHITE);
-    char buf[4];
-    sprintf(buf, "%i%%", battpc);
-    display.setCursor(BATT_W + 5, BATT_Y);
-    display.print(buf);
-    low_batt_counter = 0;         // reset
-//  } else if(battv == 0) {
-//    /** Shows 0 when charging **/
-//    low_batt_counter = 0;         // reset
-//    batt_warning_sent = false;    // reset
-//    display.drawBitmap(BATT_X, BATT_Y, charge_symbol, CHARGE_SYMBOL_WIDTH, CHARGE_SYMBOL_HEIGHT, 1);
-  } else {
-    /** LOW BATTERY ! **/
-    // we don't want to send a warning every time we arrive here because the reading could
-    // be transient. So we insist on getting BATT_ALERT_THRESHOLD number of consecutive
-    // warnings before sending an alert.
-    low_batt_counter++;   
-    if(low_batt_counter >= BATT_ALERT_THRESHOLD && !batt_warning_sent) {
-      // send an alert
-      sendAlert();
-      batt_warning_sent = true;
-      low_batt_counter = 0;
-    }
-    display.print(F("**LOW BATTERY**"));
-  }
-  display.display();
-}
 
 void printIP() {
   /*  Prints the IP address in the bottom-right corner of the display */
@@ -256,27 +206,6 @@ void printHumidity(const float hum) {
   display.getTextBounds(buf, 1, 1, &x1, &y1, &w, &h);
   display.setCursor(SCREEN_WIDTH - w, HUM_Y);
   display.print(buf);
-}
-
-// ---------------------------------------------------------------------------------------
-// --- ALERTS                                                                          ---
-// ---------------------------------------------------------------------------------------
-void sendAlert() {
-  /*  Send alert to InfluxDB */
-  if (wifiConnected) {
-    alert.addTag("type", "power");
-    alert.clearFields();    
-    alert.addField("msg", "low battery");
-    alert.addField("urgency", ALERT_URGENCY);
-    bool result = dbclient.writePoint(alert);
-    if (result) {
-      Serial.println(F("Alert sent OK."));
-    } else {
-      Serial.println(F("Failed to send alert."));
-    }
-  } else {
-    Serial.println(F("Could not send alert because wifi is down."));
-  }
 }
 
 // ---------------------------------------------------------------------------------------
@@ -343,10 +272,6 @@ bool wifiConnect() {
 // ***************************************************************************************
 void setup() {
 
-  pinMode(VBAT_PIN, INPUT);
-
-  batt_warning_sent = false;
-  low_batt_counter = 0;
   wifiConnected = false;
   influxConnected = false;
 
@@ -374,18 +299,6 @@ void setup() {
   }
 
   wifiConnected = wifiConnect();
-
-//bool influxConnect() {
-//  bool connected = false;
-//  uint8_t connect_counter = 0;
-//  connected = dbclient.validateConnection();
-//  while ((connect_counter < INFLUX_MAX_TRIES) && !connected) {
-//    dbclient.setConnectionParamsV1(INFLUXDB_URL, INFLUXDB_DB_NAME, INFLUXDB_USER, INFLUXDB_PASSWORD);
-//    connected = dbclient.validateConnection();
-//    
-//  }
-//  return connected;
-//}
 
   if (wifiConnected) {
     printLine("Wifi connected", 3);
@@ -420,7 +333,6 @@ void setup() {
   // Create tags:
   sensor.addTag("device_uid", DEVICE_UID);
   sensor.addTag("location", DEVICE_LOCATION);
-  alert.addTag("device_uid", DEVICE_UID);
 
   display.clearDisplay();
   printIP();
@@ -432,7 +344,7 @@ void setup() {
 // ***  MAIN LOOP                                                                      ***
 // ***************************************************************************************
 uint8_t report_counter = 0;
-uint8_t batt_counter = BATT_INTERVAL;       // start displaying battery level immediately
+
 void loop() {
   if (wifiMulti.run() != WL_CONNECTED) {
     Serial.println("Wifi connection lost");
@@ -446,22 +358,11 @@ void loop() {
   printHumidity(humidity);
   display.display();
 
-  if(batt_counter == BATT_INTERVAL) {
-    battv = ((float)analogRead(VBAT_PIN) / 4095) * 3.3 * 2 * 1.05;
-    battpc = (uint8_t)(((battv - BATTV_MIN) / (BATTV_MAX - BATTV_MIN)) * 100);
-    batt_counter = 0;
-    printBatteryLevel();  
-  } else {
-    batt_counter++;
-  }
-
   if (report_counter == REPORT_INTERVAL) {
     // Send data to InfluxDB
     if (wifiConnected) {
       sensor.clearFields();
       sensor.addField("temp", temperature);
-      sensor.addField("battv", battv);
-      sensor.addField("battpc", battpc);
       bool result = dbclient.writePoint(sensor);
       if (result) {
         Serial.println(F("Data sent OK."));
